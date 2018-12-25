@@ -2,6 +2,7 @@ import socket
 import threading
 import pygame
 import time
+import sys
 from pygame.locals import *
 
 
@@ -54,8 +55,8 @@ class dataThread(threading.Thread):
 
     def run(self):
 
-        host = '127.0.0.1'
-        port = 53355
+        host = sys.argv[1]
+        port = int(sys.argv[2])
         csock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         csock.connect((host, port))
 

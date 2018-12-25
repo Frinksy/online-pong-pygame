@@ -2,15 +2,23 @@ import socket
 import threading
 import time
 import pygame
+import sys
+from random import choice
+
+
 class Ball(object):
 
     def __init__(self):
         self.rect = pygame.rect.Rect(400-7, 400-7, 15, 15)
         self.x = 400
         self.y = 400
-        self.velx = 3
-        self.vely = 4
+        self.velx = choice((3, -3))
+        self.vely = choice((4, -4))
         self.size = 15
+
+    def reset(self):
+        self.__init__()
+        time.sleep(2)
 
     def move(self):
         #self.x += self.velx
@@ -21,18 +29,21 @@ class Ball(object):
         elif self.rect.y < 0:
             self.vely = abs(self.vely)
         if self.rect.x > 800 - self.size:
-            self.velx = -(abs(self.velx))
+            self.reset()
         elif self.rect.x < 0:
-            self.velx = abs(self.velx)
+            self.reset()
         #   print(self.x,self.y)
-
+        if abs(self.velx < 40):
+            self.velx *= 1.001
         global player1
         global player2
 
         if self.rect.colliderect(player1.rect):
             self.velx = abs(self.velx)
+            self.vely = (self.rect.centery - player1.rect.centery) * 0.1 
         elif self.rect.colliderect(player2.rect):
             self.velx = -abs(self.velx)
+            self.vely = (self.rect.centery - player2.rect.centery) * 0.1
 
 
 class Player(object):
@@ -120,8 +131,8 @@ running = True
 ###########################
 
 # Initialize server
-host = '127.0.0.1'
-port = 53355
+host = sys.argv[1]
+port = int(sys.argv[2])
 
 
 lsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
