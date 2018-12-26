@@ -7,16 +7,19 @@ from pygame.locals import *
 
 
 class Player(object):
-
+    """Object to handle each player's paddle"""
     def __init__(self, player):
         
+        # Define size of paddle
         self.height = 200
         self.width = 20
+
+        # Set player's position on screen
         if player == 1:
-            self.rect = Rect(20, 400-self.height/2, self.width, self.height)
+            self.rect = Rect(20, 400-(self.height/2), self.width, self.height)
             self.player = 1
         elif player == 2:
-            self.rect = Rect(800-20-self.width, 400-self.height/2, self.width, self.height)
+            self.rect = Rect(800-20-self.width, 400-(self.height/2), self.width, self.height)
             self.player = 2
     
     def draw(self):
@@ -31,30 +34,30 @@ class Player(object):
             self.rect.move_ip(0, 9)
 
 class Ball(object):
-
+    """Object to draw and move ball"""
     def __init__(self):
-        self.rect = pygame.rect.Rect(0, 0, 15, 15)
+        self.rect = pygame.rect.Rect(400-8, 400-8, 15, 15)
 
     def draw(self):
-
         global screen
-
         pygame.draw.rect(screen, (255, 255, 255), self.rect)
     
     def move(self, x, y):
-
         self.rect.x = x
         self.rect.y = y
 
 
 
 class dataThread(threading.Thread):
-
+    """Thread to send and receive data from server
+       Also updates objects' positions
+    """
     def __init__(self):
         threading.Thread.__init__(self)
 
     def run(self):
 
+        # Initialise socket
         host = sys.argv[1]
         port = int(sys.argv[2])
         csock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -66,9 +69,13 @@ class dataThread(threading.Thread):
         data = csock.recv(2048).decode()
         
         time.sleep(1)
+
+
+
         global player
         global enemy
-        player.__init__(int(data))
+        player.__init__(int(data)) # Reinitialise player to place on correct side
+        # Reinitialise enemy to place on correct side
         if int(data) == 1:
             enemy.__init__(2)
         else:
@@ -76,12 +83,12 @@ class dataThread(threading.Thread):
             
 
         while running:
-
+            """Main loop to get data from server and send"""
+            
+            # Get data
             data = csock.recv(2048)
 
             if data:
-                #print(repr(data))
-                #print(running)
 
                 try:
                     data = data.decode()
@@ -98,6 +105,9 @@ class dataThread(threading.Thread):
 
                     print("Packet choke")
                 
+
+
+                # Send data
                 try:
                     data = str(player.rect.x) + "x" + str(player.rect.y)
                     csock.send(data.encode())
@@ -106,7 +116,8 @@ class dataThread(threading.Thread):
                     print("Data could not be sent")
 
             else:
-                break
+                running = False
+                break # Exit loop 
 
         csock.close()
 
@@ -114,18 +125,29 @@ class dataThread(threading.Thread):
        
 ### Initialisation ###
 pygame.init()
-screen = pygame.display.set_mode((800, 800))
+screen = pygame.display.set_mode((800, 800), FULLSCREEN)
 
 running = True
 ball = Ball()
 player = Player(1)
 enemy = Player(2)
 
-######################
+########################################################################
+background = pygame.surface.Surface((800, 800))                        #
+pygame.draw.rect(background, (255, 255, 255), Rect(0,0,800,4))         #
+pygame.draw.rect(background, (255, 255, 255), Rect(0,800-4,800,4))     # Draw background
+pygame.draw.rect(background, (255, 255, 255), Rect(0,0,4,800))         #
+pygame.draw.rect(background, (255, 255, 255), Rect(800-4,0,400,800))   #
+pygame.draw.rect(background, (255, 255, 255), Rect(400-2,0,4,800))     #
+########################################################################
 
+# Start data thread
 dthread = dataThread()
 dthread.start()
 
+
+
+# Rendering loop
 clock = pygame.time.Clock()
 while running:
 
@@ -141,21 +163,15 @@ while running:
 
     player.move()
 
-
-    screen.fill((0,0,0))
+    # Draw elements on screen
+    screen.blit(background, (0, 0))
     ball.draw()
     player.draw()
-
-
     enemy.draw()
 
+    # Update screen & render 60FPS
     pygame.display.flip()
-    
     clock.tick(60)
 
-
-
-
-
+# Wait for data thread to end
 dthread.join()
-
