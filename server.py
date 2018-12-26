@@ -33,7 +33,7 @@ class Ball(object):
         elif self.rect.x < 0:
             self.reset()
         #   print(self.x,self.y)
-        if abs(self.velx < 40):
+        if abs(self.velx) < 40:
             self.velx *= 1.001
         global player1
         global player2
