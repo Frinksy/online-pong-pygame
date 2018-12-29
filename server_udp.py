@@ -91,6 +91,7 @@ class server_thread(threading.Thread):
         global player1
         global player2
         i = 0
+        self.lsock.settimeout(10)
         while running:
             try:
                 data = str(ball.rect.x + 100) + "x" + str(ball.rect.y + 100) # Get ball coordinates
