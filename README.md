@@ -4,6 +4,11 @@
 
 
 ### Usage
+> Server : python server_udp.py [host] [port]
+> Clients : pytho server_udp.py [host] [port]  
+> Host and port should match the ones used to start server  
+> Using udp should be preferred, as it should be less laggy across laggy connections  
+> You can always use the old tcp version of the game :  
 > Server : python server.py [host] [port]  
 > Clients : python client.py [host] [port]  
 
