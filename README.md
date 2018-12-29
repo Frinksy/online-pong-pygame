@@ -16,4 +16,5 @@
 
 ## Requirements
 > Python 3 or above (tested on Python 3.7.1)  
-> Pygame module
+> Pygame module  
+> For use over the internet, the machine the server runs on will have to have port-forwarding enabled
