@@ -82,6 +82,7 @@ class server_thread(threading.Thread):
         data, self.addr2 = self.lsock.recvfrom(2048)
         self.lsock.sendto("2".encode(), self.addr2)
         print("Player 2 connected") 
+
         
 
     def run(self):
@@ -105,7 +106,7 @@ class server_thread(threading.Thread):
                 running = False
             
             try:
-                for i in range(2):
+                for n in range(2):
                     data = self.lsock.recv(2048).decode()
                     coords = data[1:].split("x")
                     if data[0] == "a":
@@ -119,7 +120,7 @@ class server_thread(threading.Thread):
 
             except:
                 i+=1
-                print("The program has encountered an error : receiving data")
+                print("The program has encountered an error : receiving data", i)
                 if i > 100:
                     print("Quitting")
                     running = False

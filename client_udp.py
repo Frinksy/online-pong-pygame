@@ -82,8 +82,9 @@ class dataThread(threading.Thread):
         else:
             enemy.__init__(1)
             
-        data = csock.recv(2048)
-        csock.settimeout(4)
+        
+
+        csock.settimeout(40)
         while running:
             """Main loop to get data from server and send"""
             
@@ -120,6 +121,7 @@ class dataThread(threading.Thread):
                 
                 except:
                     print("Data could not be sent")
+                    running = False
 
             else:
                 running = False
