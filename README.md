@@ -8,6 +8,10 @@ However it accomplishes to create a simple pong experience. Feel free to try it 
 
 ## Usage
 
+### Requirements
+
+You must have Python 3 and the pygame module installed.
+
 ### Server
 `python3 server.py <host> <port>`
 
