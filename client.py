@@ -1,177 +1,106 @@
-import socket
-import threading
-import pygame
-import time
 import sys
+import socket
+import time
+import pygame
+from game_thread import ClientGameDataThread
 from pygame.locals import *
 
-
-class Player(object):
-    """Object to handle each player's paddle"""
-    def __init__(self, player):
-        
-        # Define size of paddle
-        self.height = 200
-        self.width = 20
-
-        # Set player's position on screen
-        if player == 1:
-            self.rect = Rect(20, 400-(self.height/2), self.width, self.height)
-            self.player = 1
-        elif player == 2:
-            self.rect = Rect(800-20-self.width, 400-(self.height/2), self.width, self.height)
-            self.player = 2
-    
-    def draw(self):
-        global screen
-        pygame.draw.rect(screen, (255, 255, 255), self.rect)
-
-    def move(self):
-        k = pygame.key.get_pressed()
-        if k[K_UP] and self.rect.y > 9:
-            self.rect.move_ip(0, -9)
-        if k[K_DOWN] and self.rect.y < 800-self.height-9:
-            self.rect.move_ip(0, 9)
-
-class Ball(object):
-    """Object to draw and move ball"""
-    def __init__(self):
-        self.rect = pygame.rect.Rect(400-8, 400-8, 15, 15)
-
-    def draw(self):
-        global screen
-        pygame.draw.rect(screen, (255, 255, 255), self.rect)
-    
-    def move(self, x, y):
-        self.rect.x = x
-        self.rect.y = y
-
-
-
-class dataThread(threading.Thread):
-    """Thread to send and receive data from server
-       Also updates objects' positions
-    """
-    def __init__(self):
-        threading.Thread.__init__(self)
-
-    def run(self):
-
-        # Initialise socket
-        host = sys.argv[1]
-        port = int(sys.argv[2])
-        csock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        csock.connect((host, port))
-
-        global running
-        global ball
-
-        data = csock.recv(2048).decode()
-        
-        time.sleep(1)
-
-
-
-        global player
-        global enemy
-        player.__init__(int(data)) # Reinitialise player to place on correct side
-        # Reinitialise enemy to place on correct side
-        if int(data) == 1:
-            enemy.__init__(2)
-        else:
-            enemy.__init__(1)
-            
-
-        while running:
-            """Main loop to get data from server and send"""
-            
-            # Get data
-            data = csock.recv(2048)
-
-            if data:
-
-                try:
-                    data = data.decode()
-
-                    coords = data.split("x")
-
-                    ball.rect.x = int(coords[0]) - 100
-                    ball.rect.y = int(coords[1]) - 100
-
-                    enemy.rect.x = int(coords[2])
-                    enemy.rect.y = int(coords[3])
-
-                except:
-
-                    print("Packet choke")
-                
-
-
-                # Send data
-                try:
-                    data = str(player.rect.x) + "x" + str(player.rect.y)
-                    csock.send(data.encode())
-                
-                except:
-                    print("Data could not be sent")
-
-            else:
-                running = False
-                break # Exit loop 
-
-        csock.close()
-
-
-       
-### Initialisation ###
 pygame.init()
-screen = pygame.display.set_mode((800, 800), FULLSCREEN)
+
+# Game Data :
+sessionID = -1 # Default (should quit if trying to start with negative value)
+playerID = -1 # 0 --> left side | 1 --> right side
+
+counter = 0
+ball = Rect(392, 392, 16, 16)
+player_left = Rect(16, 300, 20, 200)
+player_right = Rect(764, 300, 20, 200)
+velx = 8
+vely = 8
+
+
+if len(sys.argv) != 3:
+    print("Correct usage : python3 server.py <host> <port>")
+    sys.exit()
+
+
+HOST, PORT = sys.argv[1], int(sys.argv[2])
+
+
+data_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+
+data_socket.sendto("new".encode(), (HOST, PORT))
+
+wait_for_session_start = True
+while wait_for_session_start:
+    data, return_address = data_socket.recvfrom(2048)
+    print(data.decode())
+    # Decode data to start session
+    data = data.decode().split(":")
+    if data[0] == "start":
+        print("Starting session...")
+    try:
+        sessionID = int(data[1])
+        playerID = int(data[2])
+        wait_for_session_start = False
+    except:
+        print("Could not start session.")
+
+    if sessionID < 0:
+        wait_for_session_start = False
+        print("Session ID is invalid, could not start session.")
+    if playerID < 0:
+        wait_for_session_start = False
+        print("Player ID is invalid, could not start session.")
+
+
+data_thread = ClientGameDataThread(sessionID, playerID, HOST, PORT, ball, player_left, player_right, velx, velx, data_socket)
+
+data_thread.start()
+
 
 running = True
-ball = Ball()
-player = Player(1)
-enemy = Player(2)
+# Set up display
+screen = pygame.display.set_mode((800, 800))
 
-########################################################################
-background = pygame.surface.Surface((800, 800))                        #
-pygame.draw.rect(background, (255, 255, 255), Rect(0,0,800,4))         #
-pygame.draw.rect(background, (255, 255, 255), Rect(0,800-4,800,4))     # Draw background
-pygame.draw.rect(background, (255, 255, 255), Rect(0,0,4,800))         #
-pygame.draw.rect(background, (255, 255, 255), Rect(800-4,0,400,800))   #
-pygame.draw.rect(background, (255, 255, 255), Rect(400-2,0,4,800))     #
-########################################################################
+background = pygame.Surface((800, 800))
+background.fill((0, 0, 0))
+pygame.draw.rect(background, (255, 255, 255), (0, 0, 800, 800), 8)
+pygame.draw.rect(background, (255, 255, 255), (399, 0, 2, 800))
 
-# Start data thread
-dthread = dataThread()
-dthread.start()
-
-
-
-# Rendering loop
 clock = pygame.time.Clock()
-while running:
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-            break
-    
-    k = pygame.key.get_pressed()
-    if k[K_ESCAPE]:
-        running = False
-        break
-
-    player.move()
-
-    # Draw elements on screen
-    screen.blit(background, (0, 0))
-    ball.draw()
-    player.draw()
-    enemy.draw()
-
-    # Update screen & render 60FPS
-    pygame.display.flip()
+while running: # Main game loop
     clock.tick(60)
 
-# Wait for data thread to end
-dthread.join()
+    for e in pygame.event.get(pump=True):
+        if e.type == QUIT:
+            running = False
+            break
+    keys = pygame.key.get_pressed()
+    if keys[K_ESCAPE]:
+        running = False
+    if keys[K_DOWN]:
+        if playerID == 0 and player_left.y < 600:
+            player_left.move_ip(0, 7)
+        elif player_right.y < 600:
+            player_right.move_ip(0, 7)
+    if keys[K_UP]:
+        if playerID == 0 and player_left.y > 0:
+            player_left.move_ip(0, -7)
+        elif player_right.y > 0:
+            player_right.move_ip(0, -7)
+    # Fill background with black
+    screen.blit(background, (0,0))
+
+    pygame.draw.rect(screen, (255, 255, 255), ball)
+    pygame.draw.rect(screen, (255, 255, 255), player_left)
+    pygame.draw.rect(screen, (255, 255, 255), player_right)
+
+    pygame.display.flip()
+
+print("Shutting down")
+data_thread.quit()
+time.sleep(1)
+print(data_thread.started)
+data_thread.join()
